@@ -1,0 +1,56 @@
+name: oakallow check
+description: Gate a workflow step on oakallow, and wait for a human approval when the rule requires one.
+author: Islemonics Studios LLC
+branding:
+  icon: shield
+  color: green
+
+inputs:
+  agent-token:
+    description: oakallow agent token (oak_agent_...) for the agent this workflow runs as. Store it as a repository or organization secret.
+    required: true
+  tool:
+    description: Name of the governed tool to check (for example deploy_production). It must be registered and enabled in the agent's org.
+    required: true
+  resource:
+    description: Resource the step acts on (its external id in oakallow). Must be set up in the org, or the step fails.
+    required: false
+  method:
+    description: Method name set up in oakallow. Must be set up, or the step fails.
+    required: false
+  tenant:
+    description: Tenant external id set up in oakallow. Must be set up, or the step fails.
+    required: false
+  reason:
+    description: Text shown to approvers. Defaults to the repository, workflow, branch, commit and actor.
+    required: false
+  wait-for-approval:
+    description: When the rule requires approval, wait for the decision. When false, the step fails as soon as approval is required (the approval request still reaches approvers).
+    required: false
+    default: 'true'
+  poll-seconds:
+    description: Seconds between approval status checks. Minimum 10.
+    required: false
+    default: '30'
+  max-wait-minutes:
+    description: Longest time to wait for a decision.
+    required: false
+    default: '60'
+  api-url:
+    description: oakallow API base URL. The action calls its /mcp endpoint.
+    required: false
+    default: https://api.oakallow.io
+
+outputs:
+  permission:
+    description: allowed, requires_approval or disabled.
+  reference-id:
+    description: REF of the approval request, or of the signed decision receipt when the tool was allowed.
+  decision:
+    description: Final approval status. approved, denied, expired or cancelled.
+  decided-by:
+    description: Approver recorded on the decision.
+
+runs:
+  using: node24
+  main: src/main.js
