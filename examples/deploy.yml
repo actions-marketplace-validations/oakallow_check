@@ -1,0 +1,51 @@
+# A staging then production deploy, gated by oakallow.
+#
+# Copy this file to .github/workflows/deploy.yml and replace the echo lines
+# with your real deploy commands. Same setup as oakallow-test.yml: one agent
+# per environment, each locked to its resource, with its token in that
+# GitHub environment's OAKALLOW_AGENT_TOKEN secret.
+#
+# Staging is allowed, so it deploys at once. Production waits for an
+# approver and only deploys if approved.
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Ask oakallow
+        uses: oakallow/check@v1
+        with:
+          agent-token: ${{ secrets.OAKALLOW_AGENT_TOKEN }}
+          tool: deploy
+          resource: staging
+
+      - run: echo "Deploying to staging"
+
+  deploy-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Ask oakallow
+        id: gate
+        uses: oakallow/check@v1
+        with:
+          agent-token: ${{ secrets.OAKALLOW_AGENT_TOKEN }}
+          tool: deploy
+          resource: production
+
+      - run: echo "Deploying to production, approved by ${{ steps.gate.outputs.decided-by }} (${{ steps.gate.outputs.reference-id }})"

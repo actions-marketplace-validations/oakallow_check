@@ -1,0 +1,60 @@
+# Try oakallow check before you gate a real deploy.
+#
+# Copy this file to .github/workflows/oakallow-test.yml in a test repository,
+# then run it from Actions > oakallow test > Run workflow and pick a scenario.
+# The "deploy" only prints a line. Everything else is real: your agents,
+# your rules, and approvals in Slack, Discord, Teams, the app or the dashboard.
+#
+# Setup (see examples/README.md for the full steps):
+#   oakallow: resources `staging` and `production`, tool `deploy` (Approved),
+#             rules: deploy on staging = allowed, deploy on production = requires approval,
+#             agent ci-staging locked to staging, agent ci-production locked to production.
+#   GitHub:   environments `staging` and `production`, each with the secret
+#             OAKALLOW_AGENT_TOKEN set to that environment's agent token.
+#
+# Expected results:
+#   staging         passes at once (allowed)
+#   production      waits for approval; approve and the deploy runs, deny and the job fails
+#   wrong-resource  a staging job claims production: refused by the staging agent's lock
+#   typo            resource "prodution" is not set up in oakallow: refused
+
+name: oakallow test
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Which test to run
+        type: choice
+        options:
+          - staging
+          - production
+          - wrong-resource
+          - typo
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # staging and wrong-resource run with the staging agent's token,
+    # production and typo with the production agent's token.
+    environment: ${{ (inputs.scenario == 'staging' || inputs.scenario == 'wrong-resource') && 'staging' || 'production' }}
+    steps:
+      - name: Ask oakallow
+        id: oakallow
+        uses: oakallow/check@v1
+        with:
+          agent-token: ${{ secrets.OAKALLOW_AGENT_TOKEN }}
+          tool: deploy
+          resource: ${{ inputs.scenario == 'typo' && 'prodution' || ((inputs.scenario == 'production' || inputs.scenario == 'wrong-resource') && 'production' || 'staging') }}
+          max-wait-minutes: 15
+
+      - name: Deploy
+        run: |
+          echo "Deploying (scenario: ${{ inputs.scenario }})"
+          echo "Permission: ${{ steps.oakallow.outputs.permission }}"
+          echo "Reference: ${{ steps.oakallow.outputs.reference-id }}"
+          echo "Decided by: ${{ steps.oakallow.outputs.decided-by }}"

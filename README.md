@@ -63,6 +63,8 @@ The step also writes a short summary to the job page.
 
 ## Examples
 
+Ready-to-copy workflows are in [`examples/`](examples/): [`oakallow-test.yml`](examples/oakallow-test.yml) to try every outcome first, and [`deploy.yml`](examples/deploy.yml) for a staging then production pipeline.
+
 ### Approve production deploys
 
 ```yaml
