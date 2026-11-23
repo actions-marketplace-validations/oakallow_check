@@ -1,0 +1,8 @@
+# Keeps the commit-pinned actions in .github/workflows up to date.
+# The action itself has no package dependencies.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
